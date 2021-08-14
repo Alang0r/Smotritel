@@ -22,6 +22,7 @@ var (
 	movieCount = 0
 	context    = ""
 	tgToken    string
+	adminID int
 )
 
 //init настраивает конфигурацию для бота
@@ -33,6 +34,10 @@ func init() {
 		os.Exit(1)
 	}
 	tgToken = cfg.Section("telegram").Key("token").String()
+	adminID, err = cfg.Section("telegram").Key("adminID").Int()
+	if err != nil {
+		log.Println(err)
+	}
 	lastUpd, err = cfg.Section("telegram").Key("last_update_id").Int()
 	if err != nil {
 		log.Println(err)
@@ -135,7 +140,7 @@ func parseMessage(upd lib.GetUpdatesResultT) {
 		}
 	case "/stop":
 		{
-			if upd.Message.From.ID == lib.AdminID {
+			if upd.Message.From.ID == adminID {
 				exit = true
 			} else {
 				SendMessage(upd.Message.From.ID, "Действие доступно только администратору бота:(")
@@ -178,7 +183,7 @@ func parseMessage(upd lib.GetUpdatesResultT) {
 	case "/add":
 		{
 			context = "adding"
-			if upd.Message.From.ID == lib.AdminID {
+			if upd.Message.From.ID == adminID {
 				SendMessage(upd.Message.From.ID, "Для добавления фильма отправьте мне его данные в формате:"+
 					"\nНазвание_фильма/год/жанр/актёры/рейтинг/комментарий"+
 					"\nВ случае отсутствия одного из параметров, оставьте его пустым, сохраняя структуру сообщения"+
