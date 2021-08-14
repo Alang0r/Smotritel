@@ -1,4 +1,4 @@
-package Telegram
+package lib
 
 //GetMeT struct ololo
 type GetMeT struct {

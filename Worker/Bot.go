@@ -1,8 +1,6 @@
 package main
 
 import (
-	"Bot/Movies"
-	"Bot/Telegram"
 	"Bot/lib"
 	"bytes"
 	"encoding/json"
@@ -13,17 +11,18 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
 	"github.com/go-ini/ini"
 )
 
-
-var(
-	exit bool
-	lastUpd = 0
-	log lib.Loger
+var (
+	exit       bool
+	lastUpd    = 0
+	log        lib.Loger
 	movieCount = 0
-	context = ""
-	tgToken string
+	context    = ""
+	tgToken    string
+	adminID int
 )
 
 //init настраивает конфигурацию для бота
@@ -35,6 +34,10 @@ func init() {
 		os.Exit(1)
 	}
 	tgToken = cfg.Section("telegram").Key("token").String()
+	adminID, err = cfg.Section("telegram").Key("adminID").Int()
+	if err != nil {
+		log.Println(err)
+	}
 	lastUpd, err = cfg.Section("telegram").Key("last_update_id").Int()
 	if err != nil {
 		log.Println(err)
@@ -56,7 +59,7 @@ func main() {
 //GetMe ...
 func GetMe() {
 	body := getBodyByURL(getUrlbyMethod(lib.MGetMe), []byte(""))
-	getMe := Telegram.GetMeT{}
+	getMe := lib.GetMeT{}
 	err := json.Unmarshal(body, &getMe)
 	if err != nil {
 		log.Println(err.Error())
@@ -66,12 +69,12 @@ func GetMe() {
 
 //SendMessage ..;
 func SendMessage(id int, text string) {
-	message := Telegram.SMessageT{}
+	message := lib.SMessageT{}
 	message.ChatID = id
 	message.Text = text
 	var jsonStr, err = json.Marshal(message)
 	body := getBodyByURL(getUrlbyMethod(lib.MSendMessage), jsonStr)
-	resp := Telegram.MessageT{}
+	resp := lib.MessageT{}
 	err1 := json.Unmarshal(body, &resp)
 	if err != nil {
 		log.Println(err1.Error())
@@ -101,11 +104,11 @@ func getUrlbyMethod(mName string) string {
 
 //CheckUpdates цикл в котором проверяем новые сообщения, если видим сообщение, обрабатываем
 func CheckUpdates() {
-	reqParametres := Telegram.GetSomeUpdatesT{}
+	reqParametres := lib.GetSomeUpdatesT{}
 	reqParametres.Offset = lastUpd + 1
 	var jsonParam, err = json.Marshal(reqParametres)
 	body := getBodyByURL(getUrlbyMethod(lib.MGetUpdates), jsonParam)
-	getUpd := Telegram.GetUpdatesT{}
+	getUpd := lib.GetUpdatesT{}
 	err1 := json.Unmarshal(body, &getUpd)
 	if err1 != nil {
 		log.Println(err.Error())
@@ -120,11 +123,11 @@ func CheckUpdates() {
 	}
 }
 
-//func parseMessage парсим сообщение, чтобы понять что делать. Если команда- запускаем обработчик команд, если текст- записываем в таблицу, прочее- ошибка.
-//запрашивать подтверждение, если введены только цифры/ только спецсимволы
-//если была введена команда, обрабатываем её. Примеры: /random /comedy /western /actor Брюс Уиллис /year 2000 /random 5
-//Выводить ссылку на кинопоиск, либо формировать картинку с обложкой с кинопоиска, кратким описанием, рейтингом, списком актеров и т.д.
-func parseMessage(upd Telegram.GetUpdatesResultT) {
+/*func parseMessage парсим сообщение, чтобы понять что делать.
+Примеры: /random /comedy /western /actor Брюс Уиллис /year 2000 /random 5
+Выводить ссылку на кинопоиск, либо формировать картинку с обложкой с кинопоиска,
+кратким описанием, рейтингом, списком актеров и т.д.*/
+func parseMessage(upd lib.GetUpdatesResultT) {
 	switch message := upd.Message.Text; message {
 	case "/start":
 		{
@@ -137,7 +140,7 @@ func parseMessage(upd Telegram.GetUpdatesResultT) {
 		}
 	case "/stop":
 		{
-			if upd.Message.From.ID == lib.AdminID {
+			if upd.Message.From.ID == adminID {
 				exit = true
 			} else {
 				SendMessage(upd.Message.From.ID, "Действие доступно только администратору бота:(")
@@ -147,19 +150,19 @@ func parseMessage(upd Telegram.GetUpdatesResultT) {
 	case "/random":
 		{
 			//film := "Случайный фильм из моей говноподборки: " + gdocsapi.ReadData()
-			m := Movies.Movie{}
+			m := lib.Movie{}
 			m.GetRandom()
 			sFilm := MovieToString(m)
 			mes := "Случайный фильм из моей говноподборки: " + sFilm
 			SendMessage(upd.Message.From.ID, mes)
 		}
 	case "/random5":
-		{			
-			for i :=0; i<5; i++ {
-				m := Movies.Movie{}
+		{
+			for i := 0; i < 5; i++ {
+				m := lib.Movie{}
 				m.GetRandom()
 				sFilm := MovieToString(m)
-				mes := "Случайный фильм из моей говноподборки: "+sFilm
+				mes := "Случайный фильм из моей говноподборки: " + sFilm
 				SendMessage(upd.Message.From.ID, mes)
 			}
 			log.Println("отправляем 5 случайных", upd.Message.From.FirstName)
@@ -168,63 +171,68 @@ func parseMessage(upd Telegram.GetUpdatesResultT) {
 		{
 			log.Println("отправляем 5 последних ", upd.Message.From.FirstName)
 			SendMessage(upd.Message.From.ID, "Последние 5 добавленных:")
-			
+
 			for i := 0; i < 5; i++ {
-				var  m Movies.Movie
-				m.GetById(m.Count()-i)
+				var m lib.Movie
+				m.GetById(m.Count() - i)
 				ms := MovieToString(m)
-				SendMessage(upd.Message.From.ID, ms )
-	
+				SendMessage(upd.Message.From.ID, ms)
+
 			}
 		}
 	case "/add":
 		{
 			context = "adding"
-			if upd.Message.From.ID == lib.AdminID {
+			if upd.Message.From.ID == adminID {
 				SendMessage(upd.Message.From.ID, "Для добавления фильма отправьте мне его данные в формате:"+
-				"\nНазвание_фильма/год/жанр/актёры/рейтинг/комментарий"+
-				"\nВ случае отсутствия одного из параметров, оставьте его пустым, сохраняя структуру сообщения"+
-				"\nПример: Игра престолов/2012//Лена Хиди")
+					"\nНазвание_фильма/год/жанр/актёры/рейтинг/комментарий"+
+					"\nВ случае отсутствия одного из параметров, оставьте его пустым, сохраняя структуру сообщения"+
+					"\nПример: Игра престолов/2012//Лена Хиди")
 
-
-				
 			}
 		}
 	default:
 		{
 			switch context {
-				case "adding": {
+			case "adding":
+				{
 					log.Println("добавлене фильм")
-						movie := Movies.Movie{}
-						parts := strings.Split(message, "/")
-						for i, v := range parts {
-							if i == 0 {
-								movie.Title = v
-							}
-							if i == 1 {
-								if v !="" {movie.Year, _ = strconv.Atoi(v)}								
-							}
-							if i == 2 {
-								movie.Genre = v
-							}
-							if i == 3 {
-								movie.Actors = v
-							}
-							if i == 4 {
-								if v !="" {movie.Rating ,_= strconv.Atoi(v)}
-							}
-							if i == 5 {
-								movie.Comment = v
+					movie := lib.Movie{}
+					parts := strings.Split(message, "/")
+					for i, v := range parts {
+						if i == 0 {
+							movie.Title = v
+						}
+						if i == 1 {
+							if v != "" {
+								movie.Year, _ = strconv.Atoi(v)
 							}
 						}
+						if i == 2 {
+							movie.Genre = v
+						}
+						if i == 3 {
+							movie.Actors = v
+						}
+						if i == 4 {
+							if v != "" {
+								movie.Rating, _ = strconv.Atoi(v)
+							}
+						}
+						if i == 5 {
+							movie.Comment = v
+						}
+					}
 					movie.Add()
-					context =""
-				
-				}
-				case "":{
+					context = ""
 
 				}
-				default: {
+			case "":
+				{
+
+				}
+			default:
+				{
 					SendMessage(upd.Message.From.ID, "Я Вас не понимаю, ознакомьтесь, пожалуйста, с инструкцией по запросу /start.")
 				}
 			}
@@ -246,7 +254,7 @@ func SaveState(_lastUpdateID, _lastRow int) {
 }
 
 //MovieToString переделывает структуру фильма в строку для отправки пользователю
-func MovieToString(movie Movies.Movie) string {
+func MovieToString(movie lib.Movie) string {
 	str := "\nНазвание: "
 	str += movie.Title
 	if movie.Year != 0 {

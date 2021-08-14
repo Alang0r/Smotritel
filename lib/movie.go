@@ -1,4 +1,4 @@
-package Movies
+package lib
 
 import (
 	"log"
@@ -10,7 +10,7 @@ import (
 )
 
 const(
-	dbPath = "../Movies/Movies.db"
+	dbPath = "Movies.db"
 )
 type Movie struct {
 	ID int
@@ -58,11 +58,11 @@ func (obj *Movie) GetById(id int) int {
 func (obj *Movie) Add() int{
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
-		log.Fatal("failed to connect database")
+		log.Fatal("Failed to connect database")
 		return 404
 	}
 	if db.Create(&obj).RowsAffected != 1 {
-		log.Println("не удалось добавить фильм")
+		log.Println("Не удалось добавить фильм")
 	}
 	return 0
 }
