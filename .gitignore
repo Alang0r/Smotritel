@@ -1,4 +1,3 @@
 Movies/Movies.db
 Worker/config.ini
 log/Messages.log
-lib/log.go
