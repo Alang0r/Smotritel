@@ -4,14 +4,10 @@ import (
 	"log"
 	"math/rand"
 	"time"
-
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-const(
-	dbPath = "Movies.db"
-)
 type Movie struct {
 	ID int
 	Title string
@@ -23,7 +19,8 @@ type Movie struct {
 }
 
 func(obj *Movie) GetRandom()  int{
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("failed to connect database")
 		return 404
@@ -34,7 +31,7 @@ func(obj *Movie) GetRandom()  int{
 }
 
 func (obj *Movie) Count() int {
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("failed to connect database")
 		return 404
@@ -46,7 +43,7 @@ func (obj *Movie) Count() int {
 }
 
 func (obj *Movie) GetById(id int) int {
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("failed to connect database")
 		return 404
@@ -56,7 +53,7 @@ func (obj *Movie) GetById(id int) int {
 }
 
 func (obj *Movie) Add() int{
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect database")
 		return 404

@@ -1,0 +1,27 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "database": "${workspaceFolder:Bot}/movies.db",
+            "name": "Movies_new"
+        },
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "Old_Movies",
+            "database": "${workspaceFolder:Bot}/Worker/Movies.db"
+        },
+        {
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "movies",
+            "database": "movies",
+            "username": "poster",
+            "password": "post123!"
+        }
+    ],
+    "sqltools.useNodeRuntime": true
+}
