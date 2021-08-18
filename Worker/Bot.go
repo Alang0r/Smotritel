@@ -119,7 +119,6 @@ func CheckUpdates() {
 		logStr := "@" + item.Message.From.UserName + ": " + item.Message.Text
 		log.Println(logStr)
 		parseMessage(item)
-
 	}
 }
 
@@ -196,7 +195,6 @@ func parseMessage(upd lib.GetUpdatesResultT) {
 			switch context {
 			case "adding":
 				{
-					log.Println("добавлене фильм")
 					movie := lib.Movie{}
 					parts := strings.Split(message, "/")
 					for i, v := range parts {
@@ -224,6 +222,8 @@ func parseMessage(upd lib.GetUpdatesResultT) {
 						}
 					}
 					movie.Add()
+					ms := "добавлен фильм"+MovieToString(movie)
+					SendMessage(upd.Message.From.ID, ms)
 					context = ""
 
 				}
