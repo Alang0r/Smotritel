@@ -2,3 +2,7 @@ Worker/Movies.db
 Worker/config.ini
 log/Messages.log
 lib/const.go
+old
+Bot.exe
+.idea
+.vscode
